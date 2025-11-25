@@ -1,794 +1,765 @@
-import React, { useState, useRef, useEffect } from 'react';
-// 導入 AlertCircle (帶圓圈的感嘆號) 圖示用於備註
-import { Calendar, CheckSquare, Home, Plane, Droplets, MapPin, Utensils, ShoppingBag, Camera, Train, Coffee, Thermometer, Sun, AlertCircle } from 'lucide-react';
-
-// --- 擴充資料 ---
-const itineraryData = [
-  {
-    dayId: "day0",
-    dateNum: "10",
-    dayName: "FRI",
-    fullDate: "1/10",
-    title: "出發準備", 
-    events: [
-      { time: "19:00", title: "溫暖的家", type: "HOME", icon: Home, desc: "確認行李、護照是否帶齊，準備出發！", color: "border-gray-400 text-gray-600" },
-      { time: "23:00", title: "前往桃園機場 T1", type: "TRANSPORT", icon: Train, desc: "搭乘交通工具前往機場，準備辦理登機。", color: "border-blue-400 text-blue-600" },
-    ]
-  },
-  {
-    dayId: "day1",
-    dateNum: "11",
-    dayName: "SAT",
-    fullDate: "1/11",
-    title: "紅眼抵達", 
-    events: [
-      { time: "02:25", title: "MM620 飛往東京", type: "FLIGHT", icon: Plane, desc: "樂桃航空 MM620 紅眼航班，台北 T1 至成田 T1。", tag: "TPE -> NRT", color: "border-sky-500 text-sky-600" },
-      { time: "06:30", title: "抵達成田機場 T1", type: "ARRIVAL", icon: MapPin, desc: "入境手續、領取行李、購買 Suica/Pass。", color: "border-green-500 text-green-600" },
-      { time: "07:30", title: "搭乘京成電鐵", type: "TRANSPORT", icon: Train, desc: "前往上野，尋找置物櫃或前往飯店。", color: "border-blue-400 text-blue-600" },
-      { time: "09:00", title: "上野公園散步", type: "SIGHTSEEING", icon: Camera, desc: "早晨的公園漫步，呼吸新鮮空氣。", color: "border-teal-400 text-teal-600" },
-      { time: "11:00", title: "Check-in / 寄放行李", type: "HOTEL", icon: Home, desc: "前往上野住宿處寄放行李。", color: "border-purple-400 text-purple-600" },
-      { time: "12:30", title: "午餐：一蘭拉麵", type: "FOOD", icon: Utensils, desc: "補充體力，快速解決午餐。", color: "border-orange-400 text-orange-600" },
-      { time: "15:00", 
-        title: "銀座逛街", 
-        type: "SHOPPING", 
-        icon: ShoppingBag, 
-        desc: "在銀座感受東京的奢華氛圍。點擊此卡片查看詳細備註。", 
-        color: "border-pink-400 text-pink-600",
-        // 新增圖片和備註
-        imageUrl: "https://placehold.co/400x200/fecaca/ffffff?text=銀座+Ginza",
-        notes: "重點逛 Ginza Six 和三越百貨，記得去看 Hermes 旗艦店建築。可以去文具店 Itoya 看看日本設計。"
-      },
-      { time: "19:30", title: "晚餐：池袋美食街", type: "FOOD", icon: Utensils, desc: "享受豐盛的日式晚餐。", color: "border-orange-400 text-orange-600" },
-    ]
-  },
-  {
-    dayId: "day2",
-    dateNum: "12",
-    dayName: "SUN",
-    fullDate: "1/12",
-    title: "鎌倉湘南",
-    events: [
-      { time: "08:00", title: "築地市場", type: "FOOD", icon: Utensils, desc: "享用新鮮海鮮丼早餐。", color: "border-orange-400 text-orange-600" },
-      { time: "10:30", 
-        title: "鎌倉大佛", 
-        type: "SIGHTSEEING", 
-        icon: Camera, 
-        desc: "高得院參拜，感受古都氛圍。點擊此卡片查看詳細備註。", 
-        color: "border-teal-400 text-teal-600",
-        // 新增圖片和備註
-        imageUrl: "https://placehold.co/400x200/99f6e4/083344?text=鎌倉大佛+Kotoku-in",
-        notes: "推薦參拜後沿著小徑散步。必吃附近的大佛布丁，口味特別。進入寺廟時請保持肅靜。"
-      },
-      { time: "12:00", title: "鶴岡八幡宮", type: "SIGHTSEEING", icon: MapPin, desc: "熱鬧的小町通商店街午餐。", color: "border-red-400 text-red-600" },
-      { time: "15:00", title: "鎌倉高校前", type: "SIGHTSEEING", icon: Camera, desc: "灌籃高手平交道，拍網美照。", color: "border-blue-400 text-blue-600" },
-      { time: "20:00", title: "SHIBUYA SKY", type: "SIGHTSEEING", icon: Camera, desc: "俯瞰東京夜景 (需提前預約)。", tag: "預約濟", color: "border-orange-400 text-orange-600" } 
-    ]
-  },
-  {
-    dayId: "day3",
-    dateNum: "13",
-    dayName: "MON",
-    fullDate: "1/13",
-    title: "富士購物",
-    events: [
-      { time: "09:00", title: "前往御殿場", type: "TRANSPORT", icon: BusIcon, desc: "搭乘巴士前往 Outlet。", color: "border-blue-400 text-blue-600" },
-      { time: "11:00", title: "御殿場 Outlet", type: "SHOPPING", icon: ShoppingBag, desc: "眺望富士山，瘋狂購物時間。點擊此卡片查看詳細備註。", color: "border-pink-400 text-pink-600" },
-      { time: "18:00", title: "阿美橫丁", type: "FOOD", icon: Utensils, desc: "返回上野，居酒屋晚餐與藥妝補貨。", color: "border-orange-400 text-orange-600" }
-    ]
-  },
-  {
-    dayId: "day4",
-    dateNum: "14",
-    dayName: "TUE",
-    fullDate: "1/14",
-    title: "下町藝術",
-    events: [
-      { time: "09:00", 
-        title: "淺草寺", 
-        type: "SIGHTSEEING", 
-        icon: MapPin, 
-        desc: "雷門拍照、仲見世通吃人形燒。點擊此卡片查看詳細備註。", 
-        color: "border-red-500 text-red-600",
-        // 新增圖片和備註
-        imageUrl: "https://placehold.co/400x200/f87171/ffffff?text=淺草寺+Sensoji",
-        notes: "參拜路線：雷門 -> 仲見世通 -> 寶藏門 -> 本堂。記得在仲見世通買人形燒和伴手禮。"
-      },
-      { time: "12:00", title: "敘敘苑燒肉", type: "FOOD", "icon": Utensils, desc: "晴空塔店，午間套餐。", tag: "需預約", color: "border-orange-400 text-orange-600" },
-      { time: "15:00", title: "飯店移動", type: "HOTEL", icon: Home, desc: "移動至東京灣東方飯店 Check-in。", color: "border-purple-400 text-purple-600" },
-      { time: "17:00", title: "teamLab Planets", type: "ART", icon: Camera, desc: "豐洲數位藝術展 (記得穿短褲)。", color: "border-indigo-400 text-indigo-600" }
-    ]
-  },
-  {
-    dayId: "day5",
-    dateNum: "15",
-    dayName: "WED",
-    fullDate: "1/15",
-    title: "迪士尼",
-    events: [
-      { time: "08:00", 
-        title: "迪士尼海洋", 
-        type: "FUN", 
-        icon: MapPin, 
-        desc: "夢幻泉鄉、Duffy、遊行。點擊此卡片查看詳細備註。", 
-        tag: "DPA/PP", 
-        color: "border-sky-400 text-sky-600",
-        // 新增圖片和備註
-        imageUrl: "https://placehold.co/400x200/bae6fd/0c4a6e?text=迪士尼海洋+Sea",
-        notes: "必玩：驚魂古塔、地心探險。必吃：Duffy 甜點和火雞腿。先抽 DPA/PP！"
-      },
-      { time: "20:30", title: "夜間煙火", type: "SHOW", icon: Camera, desc: "Believe! Sea of Dreams.", color: "border-purple-500 text-purple-600" }
-    ]
-  },
-  {
-    dayId: "day6",
-    dateNum: "16",
-    dayName: "THU",
-    fullDate: "1/16",
-    title: "返程",
-    events: [
-      { time: "10:00", title: "Aeon Mall", type: "SHOPPING", icon: ShoppingBag, desc: "幕張新都心，最後衝刺。", color: "border-pink-400 text-pink-600" },
-      { time: "14:00", title: "前往成田機場 T2", type: "TRANSPORT", icon: Plane, desc: "搭乘交通工具前往成田 T2，準備辦理登機。", color: "border-blue-400 text-blue-600" },
-      { time: "18:25", title: "IT203 返台", type: "FLIGHT", icon: Plane, desc: "台灣虎航 IT203，成田 T2 (18:25) 至台北 T1 (21:30)。", color: "border-sky-500 text-sky-600" }
-    ]
-  }
-];
-
-function BusIcon(props) {
-  return (
-    <svg 
-      {...props}
-      xmlns="http://www.w3.org/2000/svg" 
-      width="24" 
-      height="24" 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round"
-    >
-      <path d="M8 6v6" />
-      <path d="M15 6v6" />
-      <path d="M2 12h19.6" />
-      <path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3" />
-      <circle cx="7" cy="18" r="2" />
-      <path d="M9 18h5" />
-      <circle cx="16" cy="18" r="2" />
-    </svg>
-  );
-}
-
-// --- Components ---
-
-// 1. Weather Widget (即時天氣)
-const WeatherWidget = () => (
-  // 輕微調整漸層，讓卡片更精緻
-  <div className="bg-gradient-to-br from-blue-50 to-sky-100 p-6 rounded-[2rem] border border-blue-200 shadow-xl relative mb-6">
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>我的日系旅程儀表板</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+TC:wght+400;500;700&display=swap" rel="stylesheet">
     
-    <h3 className="text-gray-700 font-bold text-xl mb-4 flex items-center gap-2 font-sans">
-      即時天氣
-    </h3>
-    
-    {/* Large Display Area: Icon, Temp, Condition */}
-    <div className="flex items-center justify-between mb-6">
-        
-        {/* Left: Temperature and Condition */}
-        <div className="flex flex-col">
-            {/* 溫度字體: text-6xl -> text-5xl (已修改) */}
-            <span className="text-5xl font-semibold text-gray-800 font-serif leading-none">8°C</span>
-            {/* 晴朗位置調整到下方，更突出: text-2xl -> text-xl (已修改) */}
-            <span className="text-xl text-gray-600 mt-2 font-sans font-medium">晴朗</span>
-        </div>
-        
-        {/* Right: Large Icon for visual appeal */}
-        <Sun size={56} className="text-yellow-500 flex-shrink-0 drop-shadow-lg" strokeWidth={1.5}/>
-    </div>
-    
-    {/* Details Section: Clean Grid for high/low and rain */}
-    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-blue-300/30">
-        
-       {/* 1. 最高/最低溫 */}
-       <div className="flex items-center gap-3 p-2 bg-white/50 rounded-lg">
-          <Thermometer size={20} className="text-red-500 flex-shrink-0"/> 
-          <div className="flex flex-col">
-             <span className="text-xs text-gray-400 font-bold uppercase font-sans">高 / 低溫</span>
-             {/* text-base -> text-lg */}
-             <span className="text-lg text-gray-700 font-serif font-bold">12° / 5°</span>
-          </div>
-       </div>
-       
-       {/* 2. 降雨機率 */}
-       <div className="flex items-center gap-3 p-2 bg-white/50 rounded-lg">
-          <Droplets size={20} className="text-blue-500 flex-shrink-0"/>
-          <div className="flex flex-col">
-             <span className="text-xs text-gray-400 font-bold uppercase font-sans">降雨機率</span>
-             {/* text-base -> text-lg */}
-             <span className="text-lg text-gray-700 font-serif font-bold">30%</span>
-          </div>
-       </div>
-    </div>
-  </div>
-);
-
-// 2. Flight Summary (航班資訊)
-const FlightSummary = () => {
-  // FlightCard 結構調整，分離航班號碼和名稱，以便獨立控制字體大小
-  const FlightCard = ({ departure, arrival, flightName, flightNum, date, time, terminal, direction }) => (
-    <div className={`p-4 rounded-xl border-l-4 ${direction === 'outbound' ? 'border-sky-500 bg-sky-50/50' : 'border-indigo-500 bg-indigo-50/50'} mb-3 last:mb-0`}>
-      <div className="flex justify-between items-start">
-        <div className="flex flex-col">
-          {/* text-[10px] -> text-xs */}
-          <span className="text-xs font-bold text-gray-500 uppercase font-sans">{direction === 'outbound' ? '去程' : '回程'} - {date}</span>
-          {/* 航班號碼: text-base -> text-lg, 航空公司名稱: text-sm -> text-base */}
-          <h4 className="text-lg font-serif font-semibold text-gray-800">{flightNum} <span className="text-base font-normal text-gray-500 font-sans">({flightName})</span></h4> 
-        </div>
-        <Plane size={18} className={direction === 'outbound' ? 'text-sky-500 rotate-90' : 'text-indigo-500 -rotate-90'} />
-      </div>
-      
-      <div className="mt-3 grid grid-cols-2 gap-4 text-sm pt-2 border-t border-gray-100">
-        <div className="flex flex-col">
-          {/* text-xs -> text-sm */}
-          <span className="text-sm text-gray-400 font-sans">出發 ({departure} T{terminal[0]})</span>
-          {/* text-base -> text-lg */}
-          <span className="font-serif font-bold text-gray-700 text-lg">{time[0]}</span>
-        </div>
-        <div className="flex flex-col">
-          {/* text-xs -> text-sm */}
-          <span className="text-sm text-gray-400 font-sans">抵達 ({arrival} T{terminal[1]})</span>
-          {/* text-base -> text-lg */}
-          <span className="font-serif font-bold text-gray-700 text-lg">{time[1]}</span>
-        </div>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="bg-white p-5 rounded-[2rem] border border-gray-200 mb-6 shadow-[0_8px_16px_-6px_rgba(0,0,0,0.05)] relative group">
-      {/* text-lg -> text-xl */}
-      <h3 className="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2 font-serif">
-        航班資訊
-      </h3>
-      
-      {/* 往程 */}
-      <FlightCard 
-        direction="outbound"
-        date="1/11"
-        flightNum="MM620"
-        flightName="樂桃航空"
-        departure="TPE"
-        arrival="NRT"
-        terminal={[1, 1]}
-        time={["02:25", "06:30"]}
-      />
-      
-      {/* 回程 */}
-      <FlightCard 
-        direction="return"
-        date="1/16"
-        flightNum="IT203"
-        flightName="台灣虎航"
-        departure="NRT"
-        arrival="TPE"
-        terminal={[2, 1]}
-        time={["18:25", "21:30"]}
-      />
-    </div>
-  );
-};
-
-// 3. Accommodation Summary (住宿資訊)
-const AccommodationSummary = () => {
-    // 住宿卡片元件
-    const AccommodationCard = ({ name, duration, period, link, direction }) => (
-        <div className={`p-4 rounded-xl border-l-4 ${direction === 'first' ? 'border-amber-500 bg-amber-50/50' : 'border-purple-500 bg-purple-50/50'} mb-3 last:mb-0`}>
-            <div className="flex justify-between items-start">
-                <div className="flex flex-col">
-                    {/* text-[10px] -> text-xs */}
-                    <span className="text-xs font-bold text-gray-500 uppercase font-sans">{period}</span>
-                    {/* text-base -> text-lg */}
-                    <h4 className="text-lg font-serif font-semibold text-gray-800">{name}</h4>
-                </div>
-                {/* 使用 Home icon 代表住宿 */}
-                <Home size={18} className={direction === 'first' ? 'text-amber-500' : 'text-purple-500'} />
-            </div>
-
-            <div className="mt-3 flex justify-between items-center pt-2 border-t border-gray-100">
-                {/* text-sm -> text-base */}
-                <span className="text-base text-gray-400 font-sans">{duration}</span>
-                {/* 導航按鈕: text-xs -> text-sm */}
-                <a 
-                    href={link} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="flex items-center gap-1 text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors bg-blue-100 px-3 py-1 rounded-full"
-                >
-                    <MapPin size={14} /> {/* Icon size adjusted */}
-                    導航
-                </a>
-            </div>
-        </div>
-    );
-
-    return (
-        <div className="bg-white p-5 rounded-[2rem] border border-gray-200 mb-6 shadow-[0_8px_16px_-6px_rgba(0,0,0,0.05)] relative group">
-            {/* text-lg -> text-xl */}
-            <h3 className="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2 font-serif">
-                住宿資訊
-            </h3>
-            
-            {/* Paul House (前 3 晚) */}
-            <AccommodationCard 
-                direction="first"
-                name="Paul house"
-                period="1/11 - 1/13 (3晚)"
-                duration="前 3 晚"
-                // 連結已更新為使用者提供的正確網址
-                link="https://maps.app.goo.gl/B6MVRPFDXG3FyPuCA"
-            />
-            
-            {/* 東京灣東方飯店 (後 2 晚) */}
-            <AccommodationCard 
-                direction="second"
-                name="東京灣東方飯店"
-                period="1/14 - 1/15 (2晚)"
-                duration="後 2 晚"
-                link="https://maps.app.goo.gl/MyL4zjzFMQf3rbWX7"
-            />
-        </div>
-    );
-};
-
-// 4. Checklist (行前清單)
-const Checklist = () => {
-  const [items, setItems] = useState([
-    { id: 1, text: "護照 (效期6個月以上)", done: false },
-    { id: 2, text: "Visit Japan Web 填寫", done: true },
-    { id: 3, text: "日幣現金 / 信用卡", done: false },
-    { id: 4, text: "西瓜卡 / 交通卡", done: false },
-    { id: 5, text: "行動網卡 /漫遊", done: false },
-  ]);
-
-  const toggleItem = (id) => {
-    setItems(items.map(item => item.id === id ? { ...item, done: !item.done } : item));
-  };
-
-  return (
-    <div className="bg-[#fffcf7] p-6 rounded-[2rem] border border-[#f0e6d2] mb-6 relative overflow-hidden">
-      {/* Tape effect */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-4 bg-[#e8e0d0]/50 rotate-[-1deg]"></div>
-      
-      {/* text-lg -> text-xl */}
-      <h3 className="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2 font-serif">
-        Checklist
-      </h3>
-      <div className="space-y-3">
-        {items.map(item => (
-          <div 
-            key={item.id} 
-            onClick={() => toggleItem(item.id)}
-            className="flex items-center gap-3 cursor-pointer group"
-          >
-            <div className={`w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center transition-all ${item.done ? 'bg-gray-700 border-gray-700' : 'bg-white'}`}>
-              {item.done && <CheckSquare size={12} className="text-white" />}
-            </div>
-            {/* text-sm -> text-base */}
-            <span className={`text-base font-medium transition-all ${item.done ? 'text-gray-300 line-through' : 'text-gray-600'} font-sans`}>{item.text}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// --- Itinerary Components ---
-
-const DateSelector = ({ selectedDayId, onSelect }) => {
-  const scrollRef = useRef(null);
-
-  // 日期選擇器自動捲動邏輯 (保持日期選擇器的橫向滾動)
-  useEffect(() => {
-    if (scrollRef.current && selectedDayId) {
-      const selectedElement = scrollRef.current.querySelector(`[data-day-id="${selectedDayId}"]`);
-      if (selectedElement) {
-        selectedElement.scrollIntoView({
-          behavior: 'smooth',
-          inline: 'center' 
-        });
-      }
-    }
-  }, [selectedDayId]);
-
-  return (
-    <div className="sticky top-0 z-20 bg-[#f5f2eb]/95 backdrop-blur-sm border-b border-gray-200/50 pb-2 pt-2">
-      <div 
-        ref={scrollRef}
-        className="flex overflow-x-auto gap-4 px-6 scrollbar-hide snap-x"
-        style={{ scrollBehavior: 'smooth' }}
-      >
-        {itineraryData.map((day, index) => {
-          const isSelected = selectedDayId === day.dayId;
-          
-          // 星期幾改成 DAY 幾 (PREP for Day 0)
-          const dayNumber = index;
-          const displayDayName = dayNumber === 0 ? 'PREP' : `DAY ${dayNumber}`;
-          
-          return (
-            <button
-              key={day.dayId}
-              data-day-id={day.dayId} // for auto-scroll
-              onClick={() => onSelect(day.dayId)}
-              className={`flex flex-col items-center justify-center min-w-[3.5rem] py-2 rounded-2xl transition-all duration-300 snap-center
-                ${isSelected 
-                  ? 'bg-gray-800 text-[#f5f2eb] scale-105 shadow-md' 
-                  : 'text-gray-400 hover:text-gray-600'
-                }`}
-            >
-              {/* text-[10px] -> text-xs */}
-              <span className="text-xs font-bold tracking-widest uppercase mb-0.5 font-sans">{displayDayName}</span>
-              {/* text-xl -> text-2xl */}
-              <span className={`text-2xl font-serif ${isSelected ? 'font-light' : 'font-normal'}`}>{day.dateNum}</span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
-// 5. EventModal 元件 (備註標題和圖示已更新為 AlertCircle)
-const EventModal = ({ event, onClose }) => {
-    if (!event) return null;
-
-    // 提取事件數據
-    const { title, time, desc, imageUrl, notes, icon: IconComponent, type, color } = event;
-    
-    // 根據事件顏色生成 Tailwind CSS class
-    // e.g., 'border-teal-400 text-teal-600' -> 'text-teal-600'
-    const baseColorClass = color.split(' ').find(cls => cls.startsWith('text-'));
-    // e.g., 'border-teal-400 text-teal-600' -> 'bg-teal-400' (用於背景)
-    const bgColorClass = color.split(' ').find(cls => cls.startsWith('border-')).replace('border-', 'bg-');
-    const borderColorClass = color.split(' ').find(cls => cls.startsWith('border-'));
-
-    return (
-        // Modal Overlay (使用 fixed 覆蓋全螢幕)
-        <div 
-            className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[100] p-4 backdrop-blur-sm transition-opacity duration-300 animate-fadeIn" 
-            onClick={onClose}
-        >
-            
-            {/* Modal Content */}
-            <div 
-                className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg mx-auto max-h-[90vh] flex flex-col transform transition-all duration-300 scale-100" 
-                onClick={e => e.stopPropagation()} // 防止點擊內容時關閉 Modal
-                style={{ fontFamily: 'Noto Sans TC, sans-serif' }}
-            >
-                
-                {/* Header with Title and Close Button */}
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white rounded-t-[2rem]">
-                    <h2 className={`text-2xl font-bold font-serif ${baseColorClass}`}>{title}</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 focus:outline-none p-1 transition-colors">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                </div>
-
-                {/* Scrollable Content Area */}
-                <div className="p-6 overflow-y-auto custom-scrollbar flex-grow">
-                    
-                    {/* Image (if exists) */}
-                    {imageUrl && (
-                        <div className="mb-6 rounded-2xl overflow-hidden shadow-lg border border-gray-100">
-                            <img 
-                                src={imageUrl} 
-                                alt={title} 
-                                className="w-full h-auto object-cover" 
-                                onError={(e) => { e.target.onerror = null; e.target.src="https://placehold.co/400x200/cccccc/333333?text=圖片載入失敗+請檢查URL"; }}
-                            />
-                        </div>
-                    )}
-                    
-                    {/* Time & Type Tag */}
-                    <div className="flex items-center gap-3 mb-4 text-sm text-gray-500">
-                         <Calendar size={16} className="text-indigo-400" />
-                         <span className="font-semibold text-gray-700 font-serif">{time}</span>
-                         <span className={`text-xs font-bold tracking-widest uppercase px-2 py-1 rounded-full ${bgColorClass.replace('bg-', 'bg-')}/30 ${baseColorClass}`}>{type}</span>
-                    </div>
-
-                    {/* Description (景點介紹) */}
-                    <div className={`mb-6 p-4 rounded-xl shadow-inner border ${borderColorClass.replace('border-', 'border-')}/30 ${bgColorClass.replace('bg-', 'bg-')}/20`}>
-                        <h3 className={`text-lg font-semibold mb-2 flex items-center ${baseColorClass}`}>
-                            <IconComponent size={20} className="mr-2"/>
-                            景點介紹
-                        </h3>
-                        {/* 修正描述，移除結尾的贅詞 */}
-                        <p className="text-gray-700 leading-relaxed text-base">{desc.replace('。點擊此卡片查看詳細備註。', '。')}</p>
-                    </div>
-
-                    {/* Notes (備註) - 標題和圖示已更新為 AlertCircle */}
-                    {notes && (
-                        <div className="p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded-xl shadow-md">
-                            <h3 className="text-lg font-semibold text-yellow-800 mb-2 flex items-center">
-                                <AlertCircle size={20} className="mr-2"/> {/* 使用帶圓圈的感嘆號圖示 */}
-                                備註
-                            </h3>
-                            <p className="text-gray-700 leading-relaxed text-base">{notes}</p>
-                        </div>
-                    )}
-                </div>
-
-                {/* Footer Button */}
-                <div className="p-4 bg-gray-50 border-t border-gray-100 rounded-b-[2rem]">
-                    <button 
-                        onClick={onClose} 
-                        className={`w-full ${bgColorClass.replace('bg-', 'bg-')}/70 ${baseColorClass} font-bold py-3 rounded-xl hover:opacity-80 transition duration-150 shadow-md`}
-                    >
-                        關閉詳情
-                    </button>
-                </div>
-            </div>
-
-            {/* Modal specific style for scrollbar */}
-            <style jsx="true">{`
-              .custom-scrollbar::-webkit-scrollbar {
-                  width: 8px;
-              }
-              .custom-scrollbar::-webkit-scrollbar-track {
-                  background: #f7f7f9;
-              }
-              .custom-scrollbar::-webkit-scrollbar-thumb {
-                  background-color: #cbd5e1; /* slate-300 */
-                  border-radius: 20px;
-                  border: 2px solid #f7f7f9;
-              }
-              @keyframes fadeIn {
-                from { opacity: 0; }
-                to { opacity: 1; }
-              }
-              .animate-fadeIn {
-                animation: fadeIn 0.3s ease-out forwards;
-              }
-            `}</style>
-        </div>
-    );
-};
-
-
-const TimelineItem = ({ event, isLast, onEventClick }) => {
-  return (
-    <div className="flex relative group">
-      {/* Left Column: Time */}
-      <div className="w-16 flex-shrink-0 text-right pr-4 pt-1">
-        {/* text-lg -> text-xl */}
-        <span className="font-serif text-xl text-gray-800 tracking-wide block">{event.time}</span>
-        {/* Decorative circle on the timeline */}
-        <div className={`absolute left-[4.5rem] top-3 w-2 h-2 rounded-full border-2 border-[#f5f2eb] outline outline-1 outline-gray-300 bg-white z-10 
-          group-hover:bg-gray-800 transition-colors duration-300`}></div>
-      </div>
-
-      {/* Right Column: Content */}
-      <div className={`flex-1 pb-10 pl-6 border-l border-gray-200 relative ${isLast ? 'border-transparent' : ''}`}>
-        
-        {/* Card - Now clickable to open Modal */}
-        <div 
-           className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100/50 hover:shadow-lg transition-shadow duration-300 cursor-pointer overflow-hidden"
-           onClick={() => onEventClick(event)}
-        >
-           
-           {/* 新增: 圖片顯示區塊 (如果 imageUrl 存在) */}
-           {event.imageUrl && (
-                <div className="mb-3 -mt-4 -mx-4 overflow-hidden shadow-inner border-b border-gray-100">
-                    <img 
-                        src={event.imageUrl} 
-                        alt={event.title} 
-                        className="w-full h-32 object-cover" // 固定高度 h-32
-                        onError={(e) => { e.target.onerror = null; e.target.src="https://placehold.co/400x128/cccccc/333333?text=圖片載入失敗"; e.target.classList.add('p-4', 'h-auto', 'text-center'); }}
-                    />
-                </div>
-            )}
-
-
-           <div className="flex justify-between items-start mb-2 pt-1">
-             {/* 調整行程事件標題字體大小: text-2xl -> text-xl */}
-             <h3 className="font-serif text-xl text-gray-800 leading-tight">{event.title}</h3>
-             {event.tag && (
-               <span className="text-xs font-bold text-red-400 border border-red-200 bg-red-50 px-2 py-0.5 rounded-full transform rotate-[-2deg] font-sans">
-                 {event.tag}
-               </span>
-             )}
-           </div>
-
-           <div className="flex items-center gap-2 mb-3">
-              <event.icon size={14} className="text-gray-400 uppercase" /> {/* Icon size adjusted */}
-              {/* text-[10px] -> text-xs */}
-              <span className="text-xs text-gray-400 font-bold tracking-widest uppercase font-sans">{event.type}</span>
-           </div>
-           
-           {/* 這裡只顯示摘要描述，詳細的圖片和備註移到 Modal 中 */}
-           <p className="text-base text-gray-500 font-light leading-relaxed border-l-2 pl-3 border-gray-100 font-sans">
-             {/* 修正描述，移除結尾的贅詞 */}
-             {event.desc.replace('。點擊此卡片查看詳細推薦備註。', '。點擊此卡片查看詳細備註。')} 
-           </p>
-
-           {/* Colored accent bar on the left of the card content */}
-           <div className={`absolute left-6 top-4 bottom-4 w-1 rounded-full ${event.color.split(' ')[0].replace('border-', 'bg-')}`}></div>
-        </div>
-
-      </div>
-    </div>
-  );
-};
-
-// --- Main App ---
-
-export default function App() {
-  const [activeTab, setActiveTab] = useState('home');
-  // 更改預設選取的行程日為 Day 0 (1/10)
-  const [selectedDayId, setSelectedDayId] = useState('day0'); // Default to Day 0
-  
-  // NEW STATE: 用於控制模態框，儲存當前被點擊的事件
-  const [selectedEvent, setSelectedEvent] = useState(null);
-
-  const timelineRef = useRef(null); 
-
-  // Modal handlers
-  const openModal = (event) => setSelectedEvent(event);
-  const closeModal = () => setSelectedEvent(null);
-
-  // Effect to smoothly scroll the timeline content to the top when the selected day changes.
-  // This addresses the "不要一直跳動" requirement by resetting the scroll position.
-  useEffect(() => {
-    if (activeTab === 'itinerary' && timelineRef.current) {
-      timelineRef.current.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
-    }
-  }, [selectedDayId, activeTab]);
-
-
-  // Get current selected day data
-  const currentDayData = itineraryData.find(d => d.dayId === selectedDayId);
-
-  return (
-    <div className="min-h-screen bg-[#f5f2eb] font-sans text-gray-800 pb-24 max-w-md mx-auto shadow-2xl overflow-hidden relative">
-      
-      {/* Global Background Texture */}
-      <div className="fixed inset-0 pointer-events-none opacity-60 mix-blend-multiply" 
-           style={{ backgroundImage: `url("https://www.transparenttextures.com/patterns/cream-paper.png")` }}></div>
-
-      {/* Header - Changes based on tab */}
-      <header className="bg-[#f5f2eb]/90 backdrop-blur-md sticky top-0 z-50 px-6 pt-12 pb-4 flex justify-between items-end">
-         {activeTab === 'home' ? (
-           <div className="animate-fadeIn">
-              <p className="text-xs text-gray-400 font-bold tracking-[0.2em] mb-1 font-sans">FAMILY TRIP</p>
-              {/* 年份：2026: text-3xl -> text-4xl, text-lg -> text-xl */}
-              <h1 className="text-4xl font-serif text-gray-800">東京旅行 <span className="text-xl bg-gray-800 text-white rounded-full px-3 py-1 ml-1 align-middle font-sans">2026</span></h1>
-           </div>
-         ) : (
-           <div className="w-full">
-              <p className="text-center text-xs text-gray-400 font-bold tracking-[0.2em] mb-1 font-sans">TRIP SCHEDULE</p>
-              {/* 調整行程標題字體大小: text-3xl -> text-2xl */}
-              <h1 className="text-center text-2xl font-serif text-gray-800">{currentDayData?.title}</h1>
-           </div>
-         )}
-         
-         {activeTab === 'home' && (
-           <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm">
-             <span className="font-serif italic font-bold text-lg text-gray-800">7</span>
-           </div>
-         )}
-      </header>
-
-      {/* Main Content */}
-      <main className="relative z-10 h-full">
-        
-        {/* Tab: Home */}
-        {activeTab === 'home' && (
-          <div className="px-6 py-4 animate-fadeIn">
-            <WeatherWidget /> {/* 即時天氣 */}
-            <FlightSummary /> {/* 航班資訊 */}
-            <AccommodationSummary /> {/* 新增住宿資訊 */}
-            <Checklist /> {/* 行前清單 */}
-            
-            {/* Memo Note */}
-            <div className="mt-8 p-6 bg-yellow-50/50 rounded-xl border-l-4 border-yellow-200">
-              <h4 className="font-bold text-lg text-gray-600 mb-2 font-serif italic">Memo</h4>
-              {/* text-sm -> text-base */}
-              <p className="text-base text-gray-500 leading-relaxed font-sans">
-                記得帶轉接頭，日本電壓是100V。走路會走很多，一定要穿好走的鞋子！
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Tab: Itinerary */}
-        {activeTab === 'itinerary' && (
-          // 滾動容器的 Ref
-          <div 
-            ref={timelineRef} 
-            className="h-[calc(100vh-180px)] overflow-y-auto scrollbar-hide"
-          >
-            <DateSelector selectedDayId={selectedDayId} onSelect={setSelectedDayId} />
-            
-            <div className="px-5 py-6">
-              {currentDayData && currentDayData.events.map((event, index) => (
-                <TimelineItem 
-                  key={index} 
-                  event={event} 
-                  isLast={index === currentDayData.events.length - 1} 
-                  onEventClick={openModal} // 傳遞開啟 Modal 的函式
-                />
-              ))}
-              
-              {/* End of Day Marker */}
-              <div className="flex justify-center mt-8 opacity-50">
-                 <div className="w-2 h-2 bg-gray-300 rounded-full mx-1"></div>
-                 <div className="w-2 h-2 bg-gray-300 rounded-full mx-1"></div>
-                 <div className="w-2 h-2 bg-gray-300 rounded-full mx-1"></div>
-              </div>
-            </div>
-          </div>
-        )}
-
-      </main>
-
-      {/* MODAL COMPONENT - Only renders when an event is selected */}
-      <EventModal event={selectedEvent} onClose={closeModal} />
-
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-8 left-8 right-8 bg-gray-900 text-white shadow-2xl rounded-full px-2 py-2 z-50 flex justify-between items-center max-w-[350px] mx-auto">
-        
-        <button 
-          onClick={() => setActiveTab('home')}
-          className={`flex-1 flex items-center justify-center py-3 rounded-full transition-all duration-300 ${activeTab === 'home' ? 'bg-gray-700' : 'hover:bg-gray-800'}`}
-        >
-          <Home size={22} strokeWidth={2} className={activeTab === 'home' ? 'text-white' : 'text-gray-400'} />
-          {activeTab === 'home' && <span className="ml-2 text-sm font-bold tracking-wider font-sans">HOME</span>}
-        </button>
-
-        <button 
-          onClick={() => setActiveTab('itinerary')}
-          className={`flex-1 flex items-center justify-center py-3 rounded-full transition-all duration-300 ${activeTab === 'itinerary' ? 'bg-gray-700' : 'hover:bg-gray-800'}`}
-        >
-          <Calendar size={22} strokeWidth={2} className={activeTab === 'itinerary' ? 'text-white' : 'text-gray-400'} />
-          {activeTab === 'itinerary' && <span className="ml-2 text-sm font-bold tracking-wider font-sans">PLAN</span>}
-        </button>
-
-      </nav>
-      
-      {/* Styles (字體設定) */}
-      <style>{`
-        /* 使用 Noto Sans TC 作為主要中文字體，Inter 專門用於數字和強調文字 (font-serif) */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
-        
+    <style>
         body {
-          font-family: 'Noto Sans TC', sans-serif; /* 主要中文字體 */
-        }
-        .font-sans {
-            font-family: 'Noto Sans TC', sans-serif;
-        }
-        .font-serif {
-          /* 使用 Inter 來處理數字和強調的標題，它有很好的數字設計 */
-          font-family: 'Inter', sans-serif; 
-        }
-        
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.4s ease-out forwards;
+            font-family: 'Noto Sans TC', 'Noto Sans JP', sans-serif;
+            background-color: #fcfbf9; /* 更溫暖的紙張白 */
+            color: #4b5563;
+            -webkit-tap-highlight-color: transparent; /* 移除點擊高亮 */
+            padding-bottom: 6rem; /* 為底部導航欄留出空間 */
+            overflow-x: hidden; /* 確保沒有水平滾動 */
         }
 
-        .scrollbar-hide::-webkit-scrollbar {
+        /* 隱藏滾動條但保持功能 */
+        .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
-        .scrollbar-hide {
+        .no-scrollbar {
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
-      `}</style>
+
+        /* 類似手帳本的卡片陰影 (日系簡約風) */
+        .app-card {
+            background: white;
+            border-radius: 1.25rem; /* 稍微大一點的圓角 */
+            box-shadow: 0 4px 10px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.04); /* 輕柔陰影 */
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        /* 點擊時輕微縮小，更有回應感 (應用於可點擊元素) */
+        .app-card.interactive:active {
+            transform: scale(0.99);
+            box-shadow: 0 2px 8px -1px rgba(0, 0, 0, 0.03);
+        }
+
+        /* Timeline 連接線 */
+        .timeline-line {
+            width: 2px;
+            background: #e5e7eb;
+            position: absolute;
+            top: 0;
+            bottom: -1rem;
+            left: 1.25rem;
+            z-index: 0;
+        }
+        .timeline-container {
+            padding-top: 1.5rem;
+        }
+
+        /* 頁面切換控制：確保一次只顯示一個頁面 */
+        .page-transition {
+            transition: opacity 0.3s ease;
+        }
+        .hidden-page {
+            display: none; /* 關鍵：確保內容不堆疊 */
+            opacity: 0;
+            pointer-events: none;
+        }
+        .active-page {
+            display: block; /* 關鍵：顯示頁面 */
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        /* 頁面淡入動畫 */
+        @keyframes fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fade-in {
+            animation: fade-in 0.4s ease-out forwards;
+        }
+        @keyframes slide-up {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-slide-up {
+            opacity: 0;
+            animation: slide-up 0.4s ease-out forwards;
+        }
+
+        /* Modal 啟用時的動畫 */
+        .modal-active #detail-modal {
+            pointer-events: auto;
+            opacity: 1;
+        }
+        .modal-active #modal-content {
+            transform: translateY(0);
+        }
+        #modal-content {
+            transition: transform 0.3s ease-out;
+            transform: translateY(100%);
+        }
+        /* 針對桌機/平板尺寸的 Modal 調整 */
+        @media (min-width: 640px) {
+            #modal-content {
+                transform: scale(0.95);
+                opacity: 0;
+            }
+            .modal-active #modal-content {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- 頁面主容器 - 限制寬度讓手機版面更集中 -->
+    <div class="max-w-xl mx-auto px-4 pt-8">
+        
+        <!-- ---------------------------------------------------- -->
+        <!-- 1. 主頁面 (Home Page) 內容 - 旅遊儀表板 -->
+        <!-- ---------------------------------------------------- -->
+        <div id="home-page" class="page-transition hidden-page">
+            <header class="mb-8">
+                <h1 class="text-3xl font-bold text-gray-800 tracking-wider">東京六日輕旅</h1>
+                <p class="text-sm text-gray-400 mt-1">2024.01.11 - 01.16 | 歡迎回來！</p>
+            </header>
+
+            <!-- 1. 今日天氣卡片 (天氣資訊) -->
+            <div class="app-card interactive p-6 mb-8 bg-gradient-to-br from-blue-400 to-indigo-500 text-white shadow-xl" onclick="alert('TODO: 顯示五日天氣預報')">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-xl font-medium mb-1">東京，上野</p>
+                        <h2 class="text-6xl font-extrabold">8°C</h2>
+                        <p class="text-sm opacity-90 mt-1">多雲時晴，感覺涼爽</p>
+                    </div>
+                    <i data-lucide="cloud-sun" class="w-12 h-12 text-white/90"></i>
+                </div>
+                <div class="mt-4 pt-4 border-t border-white/30 text-xs flex justify-between">
+                    <span>高溫: 11°C / 低溫: 4°C</span>
+                    <span>降雨機率: 20%</span>
+                </div>
+            </div>
+
+            <!-- 2. 航班資訊卡片 (航班資訊) -->
+            <div class="app-card p-6 mb-8 bg-rose-50 border border-rose-100">
+                <p class="text-xs font-bold text-rose-600 uppercase tracking-wider mb-2 flex items-center">
+                    <i data-lucide="plane-takeoff" class="w-4 h-4 mr-1"></i>
+                    航班資訊
+                </p>
+                
+                <!-- 去程航班 (Day 1) -->
+                <div class="border-b border-rose-100 pb-4 mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-xl font-bold text-gray-800 flex items-center">
+                            <i data-lucide="arrow-right" class="w-4 h-4 mr-2 text-rose-500"></i>
+                            MM620 (樂桃)
+                        </h3>
+                        <span class="text-sm font-medium text-gray-500">去程 - 1/11</span>
+                    </div>
+                    <div class="flex justify-between text-lg font-bold text-gray-700">
+                        <span>02:25 (TPE T1)</span>
+                        <span>06:30 (NRT T1)</span>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-1">紅眼航班，請提早休息。</p>
+                </div>
+                
+                <!-- 回程航班 (Day 6) -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-xl font-bold text-gray-800 flex items-center">
+                            <i data-lucide="arrow-left" class="w-4 h-4 mr-2 text-rose-500"></i>
+                            IT203 (虎航)
+                        </h3>
+                        <span class="text-sm font-medium text-gray-500">回程 - 1/16</span>
+                    </div>
+                    <div class="flex justify-between text-lg font-bold text-gray-700">
+                        <span>18:25 (NRT T2)</span>
+                        <span>21:30 (TPE T1)</span>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-1">請預留充裕時間前往 T2 報到。</p>
+                </div>
+            </div>
+
+            <!-- 3. 住宿資訊卡片 (住宿資訊) -->
+            <div class="app-card p-6 mb-8 bg-cyan-50 border border-cyan-100">
+                <p class="text-xs font-bold text-cyan-600 uppercase tracking-wider mb-4 flex items-center">
+                    <i data-lucide="key-round" class="w-4 h-4 mr-1"></i>
+                    住宿資訊 (共 5 晚)
+                </p>
+                
+                <!-- 第一段住宿 (1/11 - 1/14) -->
+                <div class="border-b border-cyan-100 pb-4 mb-4">
+                    <h3 class="text-xl font-bold text-gray-800 mb-1 flex items-center justify-between">
+                        <span class="flex items-center">
+                            Paul House
+                            <!-- 導航按鈕 (保留不動，用於首頁住宿區塊) -->
+                            <button onclick="window.open('https://maps.app.goo.gl/pT3x1xYM5SuEb5my6', '_blank')" class="ml-2 w-6 h-6 flex items-center justify-center text-xs font-bold text-white bg-cyan-500 hover:bg-cyan-600 rounded-full active:scale-[0.95] transition-transform shadow-md">
+                                <i data-lucide="map-pin" class="w-3 h-3"></i>
+                            </button>
+                        </span>
+                        <span class="text-sm font-medium text-cyan-700 bg-cyan-200/50 px-2 py-0.5 rounded-full">1/11 - 1/14 (3晚)</span>
+                    </h3>
+                </div>
+
+                <!-- 第二段住宿 (1/14 - 1/16) -->
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-1 flex items-center justify-between">
+                        <span class="flex items-center">
+                            東京灣東方飯店
+                            <!-- 導航按鈕 (保留不動，用於首頁住宿區塊) -->
+                            <button onclick="window.open('https://www.google.com/maps/search/' + encodeURIComponent('東京灣東方飯店'), '_blank')" 
+        class="ml-2 w-6 h-6 flex items-center justify-center text-xs font-bold text-white bg-purple-500 hover:bg-purple-600 rounded-full active:scale-[0.95] transition-transform shadow-md">
+</button>
+                                <i data-lucide="map-pin" class="w-3 h-3"></i>
+                            </button>
+                        </span>
+                        <span class="text-sm font-medium text-purple-700 bg-purple-200/50 px-2 py-0.5 rounded-full">1/14 - 1/16 (2晚)</span>
+                    </h3>
+                </div>
+            </div>
+
+            <!-- 4. 攜帶物品清單 (攜帶物品清單) -->
+            <div class="app-card p-6 mb-8 bg-green-50 border border-green-100">
+                <p id="packing-list-header" class="text-xs font-bold text-green-600 uppercase tracking-wider mb-4 flex items-center">
+                    <i data-lucide="list-todo" class="w-4 h-4 mr-1"></i>
+                    行前檢查清單 (載入中...)
+                </p>
+                <ul id="packing-list" class="space-y-3">
+                    <!-- List items will be rendered by JS -->
+                </ul>
+            </div>
+            
+        </div>
+
+        <!-- ---------------------------------------------------- -->
+        <!-- 2. 行程頁面 (Timeline Page) 內容 -->
+        <!-- ---------------------------------------------------- -->
+        <div id="timeline-page" class="page-transition hidden-page">
+            
+            <!-- 日期切換 Tab -->
+            <div class="overflow-x-auto no-scrollbar flex space-x-3 mb-4 sticky top-0 bg-[#fcfbf9] py-3 z-20"> <!-- 縮小間距 -->
+                <button onclick="renderTimeline(1)" id="tab-1" class="day-tab px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all shadow-sm bg-gray-800 text-white">
+                    Day 1
+                </button>
+                <button onclick="renderTimeline(2)" id="tab-2" class="day-tab px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all shadow-sm bg-white text-gray-400 border border-gray-100">
+                    Day 2
+                </button>
+                <button onclick="renderTimeline(3)" id="tab-3" class="day-tab px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all shadow-sm bg-white text-gray-400 border border-gray-100">
+                    Day 3
+                </button>
+                <button onclick="renderTimeline(4)" id="tab-4" class="day-tab px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all shadow-sm bg-white text-gray-400 border border-gray-100">
+                    Day 4
+                </button>
+                <button onclick="renderTimeline(5)" id="tab-5" class="day-tab px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all shadow-sm bg-white text-gray-400 border border-gray-100">
+                    Day 5
+                </button>
+                <button onclick="renderTimeline(6)" id="tab-6" class="day-tab px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all shadow-sm bg-white text-gray-400 border border-gray-100">
+                    Day 6
+                </button>
+            </div>
+
+            <!-- 時間軸容器 -->
+            <div id="timeline-container" class="relative pb-10 pl-2 timeline-container">
+                <!-- 內容會由 JavaScript 動態生成 -->
+            </div>
+
+            <!-- 旅遊數據分析圖表區塊已移除 -->
+        </div>
+
+        <!-- ---------------------------------------------------- -->
+        <!-- 3. 地圖頁面 (Map Page) 內容 - 已移除 -->
+        <!-- ---------------------------------------------------- -->
     </div>
-  );
-}
+
+    <!-- ---------------------------------------------------- -->
+    <!-- 4. 底部導航列 (Bottom Navigation Bar) -->
+    <!-- ---------------------------------------------------- -->
+    <nav class="fixed bottom-0 left-0 right-0 max-w-xl mx-auto z-30 p-4 bg-white shadow-[0_-4px_15px_rgba(0,0,0,0.03)] rounded-t-2xl">
+        <div class="flex justify-around">
+            <!-- 導航列只剩下兩個按鈕：Home & Timeline -->
+            <button id="nav-home" onclick="renderPage('home')" class="flex flex-col items-center p-2 text-gray-800 active-nav-item">
+                <i data-lucide="house" class="w-5 h-5"></i>
+                <span class="text-xs mt-1 font-medium">主頁</span>
+            </button>
+            <button id="nav-timeline" onclick="renderPage('timeline')" class="flex flex-col items-center p-2 text-gray-400 inactive-nav-item">
+                <i data-lucide="list-checks" class="w-5 h-5"></i>
+                <span class="text-xs mt-1 font-medium">行程</span>
+            </button>
+        </div>
+    </nav>
+
+
+    <!-- ---------------------------------------------------- -->
+    <!-- 5. 全用型 Modal (Popup) -->
+    <!-- ---------------------------------------------------- -->
+    <!-- 在 body 標籤上切換 modal-active class 來控制 Modal 的顯示 -->
+    <div id="detail-modal" class="fixed inset-0 z-50 pointer-events-none opacity-0 flex items-end sm:items-center sm:justify-center transition-opacity">
+        <!-- 背景遮罩 -->
+        <div onclick="closeModal()" class="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"></div>
+        
+        <!-- Modal 本體 -->
+        <div id="modal-content" class="w-full bg-white rounded-t-[2rem] sm:rounded-[2rem] sm:max-w-md sm:mx-auto p-6 pb-10 relative max-h-[85vh] overflow-y-auto no-scrollbar shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
+            
+            <!-- 拖曳條指示器 -->
+            <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6"></div>
+            
+            <!-- 內容動態填充區 -->
+            <div id="modal-dynamic-body">
+                <!-- JS 將會填充這裡 -->
+            </div>
+
+            <!-- 固定關閉按鈕 -->
+            <button onclick="closeModal()" class="mt-8 w-full py-3.5 rounded-xl font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 active:scale-[0.99] transition-transform">
+                關閉
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ----------------------------------------------------
+        // Firebase Setup (Required for Canvas Environment)
+        // ----------------------------------------------------
+        const __app_id = 'travel-itinerary-app';
+        const __firebase_config = '{}';
+        const __initial_auth_token = '';
+        
+        // ----------------------------------------------------
+        // 1. 行程資料庫 - 核心更新 (已新增鎌倉大佛圖片)
+        // ----------------------------------------------------
+        const itineraryData = {
+            1: {
+                date: "1/11 (週四)",
+                theme: "成田抵達，上野寄放，涉谷潮流",
+                items: [
+                    { time: "06:30", title: "成田機場 (NRT T1) 入境", type: "transport", color: "blue", icon: "plane-landing", desc: "樂桃 MM620 抵達。辦理入境手續、購買交通券。", note: "紅眼航班，注意精神狀態。預計抵達 NRT T1。", hasImage: false },
+                    { time: "08:00", title: "搭乘電車至京成上野站", type: "transport", color: "slate", icon: "train", desc: "搭乘京成電鐵或其他路線前往上野。", note: "在上野車站尋找大型置物櫃寄放行李。", hasImage: false },
+                    { time: "10:00", title: "池袋地區漫步", type: "sightseeing", color: "yellow", icon: "map-pin", desc: "池袋東口或西口散步，熟悉周邊環境。", hasImage: false },
+                    { time: "12:00", title: "午餐：池袋周邊", type: "food", color: "orange", icon: "utensils", desc: "在池袋尋找午餐，可能是拉麵或定食。", hasImage: false },
+                    { time: "14:30", title: "澀谷、原宿、表參道", type: "shopping", color: "pink", icon: "shopping-bag", desc: "東京潮流文化集中地，逛街採購與感受氛圍。", note: "重點：竹下通、表參道精品店。", hasImage: true, image: "https://images.unsplash.com/photo-1547989470-87a8f107c134?auto=format&fit=crop&q=80&w=600" }, // 澀谷街景
+                    { time: "17:30", title: "澀谷 SHIBUYA SKY 展望台", type: "sightseeing", color: "sky", icon: "telescope", desc: "登上展望台，欣賞東京日落及著名的十字路口。", note: "記得提前換票，預計在日落時段。", hasImage: true, image: "https://images.unsplash.com/photo-1536787680717-d2e825a0a4c0?auto=format&fit=crop&q=80&w=600" }, // SHIBUYA SKY
+                    { time: "20:00", title: "Check-in Paul House (上野)", type: "stay", color: "indigo", icon: "bed", desc: "返回上野，領取行李，辦理 Paul House 入住。", note: "第一段住宿開始，共 3 晚。", hasImage: false }
+                ]
+            },
+            2: {
+                date: "1/12 (週五)",
+                theme: "築地海鮮與鎌倉高校巡禮",
+                items: [
+                    { time: "08:00", title: "築地場外市場", type: "food", color: "orange", icon: "fish", desc: "早餐：海鮮丼、玉子燒等，享受新鮮美味。", note: "建議提早前往，避開人潮。", hasImage: true, image: "https://images.unsplash.com/photo-1518659684787-846399b14800?auto=format&fit=crop&q=80&w=600" },
+                    { time: "10:30", title: "前往鎌倉 (江之島電鐵)", type: "transport", color: "slate", icon: "bus", desc: "搭乘電車前往鎌倉，準備開始一日遊。", note: "需購買一日券或使用交通卡。", hasImage: false },
+                    { time: "12:00", title: "鶴岡八幡宮", type: "sightseeing", color: "red", icon: "church", desc: "鎌倉最主要的神社，感受古都的歷史氛圍。", hasImage: false },
+                    { time: "14:00", title: "鎌倉大佛 (高德院)", type: "sightseeing", color: "green", icon: "mountain", desc: "日本第二大的佛像，近距離感受其莊嚴。", hasImage: true, image: "https://www.bring-you.info/imgs/2020/05/kamakura-daibutsu-11.jpg", mapLink: "https://maps.app.goo.gl/METUAAiYjGMZNZak8" },
+                    { time: "16:00", title: "鎌倉高校前站", type: "sightseeing", color: "purple", icon: "camera", desc: "《灌籃高手》經典平交道場景拍照打卡。", note: "注意交通安全，不要影響當地居民。", hasImage: true, image: "https://images.unsplash.com/photo-1588667362615-56f4d2f8832c?auto=format&fit=crop&q=80&w=600" },
+                    { time: "18:30", title: "晚餐 & 返回上野", type: "food", color: "orange", icon: "ramen", desc: "在鎌倉或返回上野後用晚餐。", hasImage: false }
+                ]
+            },
+            3: {
+                date: "1/13 (週六)",
+                theme: "御殿場購物與阿美橫町",
+                items: [
+                    { time: "09:00", title: "御殿場 Premium Outlets", type: "shopping", color: "pink", icon: "gift", desc: "開始一整天的購物行程，靠近富士山。", note: "預留一整天時間，交通方式需提前確認 (巴士或火車)。", hasImage: true, image: "https://images.unsplash.com/photo-1574844622285-797305963b58?auto=format&fit=crop&q=80&w=600" }, // 購物圖
+                    { time: "13:00", title: "午餐 (Outlet內)", type: "food", color: "orange", icon: "coffee", desc: "在 Outlet 內的美食廣場或餐廳用餐。", hasImage: false },
+                    { time: "18:00", title: "阿美橫丁 (Ameya-Yokocho)", type: "shopping", color: "amber", icon: "store", desc: "返回上野，在阿美橫丁體驗熱鬧的市集氛圍，採購零食藥妝。", note: "Paul House 最後一晚。", hasImage: false },
+                    { time: "20:00", title: "晚餐：阿美橫丁居酒屋", type: "food", color: "red", icon: "beer", desc: "在阿美橫丁附近享用日式居酒屋美食。", hasImage: false }
+                ]
+            },
+            4: {
+                 date: "1/14 (週日)",
+                 theme: "淺草、晴空塔與 teamLab 移居舞濱",
+                 items: [
+                     { time: "09:00", title: "淺草寺與雷門", type: "sightseeing", color: "red", icon: "camera", desc: "參觀雷門、仲見世通，並參拜淺草寺。", hasImage: true, image: "https://images.unsplash.com/photo-1596395819057-d375226c7840?auto=format&fit=crop&q=80&w=600" },
+                     { time: "11:00", title: "晴空塔 Skytree", type: "sightseeing", color: "sky", icon: "tower-control", desc: "參觀晴空塔及 Solamachi 商場。", hasImage: false },
+                     { time: "13:00", title: "午餐：敘敘苑或同級燒肉", type: "food", color: "orange", icon: "flame", desc: "在晴空塔附近享用午餐燒肉。", hasImage: false },
+                     { time: "15:00", title: "前往東京灣東方飯店 Check-in", type: "stay", color: "purple", icon: "luggage", desc: "從上野搭車前往舞濱，將行李寄放至飯店。", note: "第二段住宿開始 (2 晚)，預計 1/16 退房。", hasImage: false },
+                     { time: "17:30", title: "teamLab Planets TOKYO DMM", type: "fun", color: "indigo", icon: "sparkles", desc: "體驗型數位藝術展，沉浸在光影世界。", note: "記得穿著輕便服裝，可能會赤腳及接觸水。", hasImage: true, image: "https://images.unsplash.com/photo-1550302450-4255146c303f?auto=format&fit=crop&q=80&w=600" } // teamLab 藝術展
+                 ]
+            },
+            5: {
+                date: "1/15 (週一)",
+                theme: "迪士尼海洋樂園一日遊",
+                items: [
+                    { time: "08:30", title: "東京迪士尼海洋入園", type: "fun", color: "purple", icon: "sparkles", desc: "開始一整天的迪士尼海洋夢幻旅程。", note: "舞濱站搭乘單軌電車至海洋樂園。", hasImage: true, image: "https://images.unsplash.com/photo-1524312686702-861d8a573428?auto=format&fit=crop&q=80&w=600" },
+                    { time: "12:00", title: "午餐 (園區內)", type: "food", color: "orange", icon: "cake", desc: "在園區內選擇主題餐廳或小吃。", hasImage: false },
+                    { time: "18:00", title: "晚餐 (園區內)", type: "food", color: "red", icon: "ramen", desc: "在園區內用晚餐，準備欣賞夜間表演。", hasImage: false },
+                    { time: "20:30", title: "夜間表演與煙火", type: "show", color: "indigo", icon: "music", desc: "觀看夜間水上表演或煙火秀。", note: "提前找好觀賞位置。", hasImage: true, image: "https://images.unsplash.com/photo-1518281361980-b26bfd556770?auto=format&fit=crop&q=80&w=600" }
+                ]
+            },
+            6: {
+                 date: "1/16 (週二)",
+                 theme: "Aeon Mall 採購與返程",
+                 items: [
+                     { time: "09:00", title: "飯店退房", type: "stay", color: "cyan", icon: "door-open", desc: "東京灣東方飯店退房，將行李寄放至舞濱站置物櫃。", hasImage: false },
+                     { time: "10:00", title: "Aeon Mall 永旺夢樂城", type: "shopping", color: "pink", icon: "shopping-cart", desc: "在 Aeon Mall 進行最後的伴手禮和生活用品採購。", note: "可在此解決午餐。", hasImage: false },
+                     { time: "13:00", title: "午餐 (Aeon Mall 內)", type: "food", color: "orange", icon: "sandwich", desc: "在商場內用午餐。", hasImage: false },
+                     { time: "15:00", title: "前往成田機場 (NRT T2)", type: "transport", color: "slate", icon: "bus", desc: "搭乘電車或巴士前往成田機場 T2。", note: "預留 3 小時的交通與報到時間。", hasImage: false },
+                     { time: "16:00", title: "虎航 IT203 Check-in", type: "transport", color: "blue", icon: "luggage", desc: "辦理登機手續與托運行李。", note: "回程航班為 IT203 (18:25)。", hasImage: false },
+                     { time: "18:25", title: "班機起飛 (NRT T2 to TPE T1)", type: "transport", color: "rose", icon: "plane", desc: "結束愉快的東京之旅，返回甜蜜的家。", hasImage: false }
+                 ]
+            }
+        };
+
+        // ----------------------------------------------------
+        // 2. 核心功能邏輯
+        // ----------------------------------------------------
+        
+        // 替換佔位圖片 URL (移到全域，供 renderTimeline 和 openModal 使用)
+        function getPlaceholderImage(title) {
+            const t = encodeURIComponent(title.substring(0, 10));
+            return `https://placehold.co/600x338/e5e7eb/6b7280?text=${t}...`;
+        }
+
+        // --- 攜帶物品清單資料與狀態管理 ---
+        const packingListData = [
+            { id: 'passport', text: "護照、機票、日幣", checked: true }, 
+            { id: 'adapter', text: "轉接頭與充電線", checked: false },
+            { id: 'suica', text: "西瓜卡/Pasmo 卡", checked: false },
+            { id: 'meds', text: "常備藥品 (感冒藥、腸胃藥)", checked: false },
+            { id: 'layers', text: "防寒衣物與發熱衣", checked: false },
+            { id: 'hotel_confirm', text: "飯店訂房確認信 (兩段住宿)", checked: false },
+            { id: 'disney_ticket', text: "迪士尼門票 (1/15)", checked: false },
+        ];
+
+        function initializePackingList() {
+            const storedList = localStorage.getItem('packingListState');
+            if (storedList) {
+                const storedItems = JSON.parse(storedList);
+                packingListData.forEach(item => {
+                    const storedItem = storedItems.find(s => s.id === item.id);
+                    if (storedItem) {
+                        item.checked = storedItem.checked;
+                    }
+                });
+            }
+            renderPackingList();
+        }
+
+        function savePackingListState() {
+            localStorage.setItem('packingListState', JSON.stringify(packingListData));
+            updatePackingListHeader();
+        }
+
+        window.togglePackingItem = function(id) {
+            const item = packingListData.find(i => i.id === id);
+            if (item) {
+                item.checked = !item.checked;
+                savePackingListState();
+                renderPackingList(); 
+            }
+        }
+
+        function updatePackingListHeader() {
+            const checkedCount = packingListData.filter(item => item.checked).length;
+            const totalCount = packingListData.length;
+            const header = document.querySelector('#packing-list-header');
+            if (header) {
+                header.innerHTML = `<i data-lucide="list-todo" class="w-4 h-4 mr-1"></i>行前檢查清單 (${checkedCount}/${totalCount})`;
+                lucide.createIcons();
+            }
+        }
+
+        function renderPackingList() {
+            const listElement = document.getElementById('packing-list');
+            if (!listElement) return;
+
+            listElement.innerHTML = packingListData.map(item => {
+                const checkedClass = item.checked ? 'text-gray-400 line-through' : 'text-gray-800';
+                const icon = item.checked ? 'check-square' : 'square';
+                return `
+                    <li class="flex items-center cursor-pointer active:scale-[0.99] transition-transform" 
+                        onclick="togglePackingItem('${item.id}')">
+                        <i data-lucide="${icon}" class="w-5 h-5 mr-3 text-green-500 shrink-0"></i>
+                        <span class="text-sm font-medium ${checkedClass} select-none">${item.text}</span>
+                    </li>
+                `;
+            }).join('');
+            lucide.createIcons();
+            updatePackingListHeader();
+        }
+        // ----------------------------------------------------
+
+
+        let currentDay = 1;
+
+        // 頁面切換核心邏輯
+        window.renderPage = function(pageName) {
+            const pages = {
+                'home': document.getElementById('home-page'),
+                'timeline': document.getElementById('timeline-page'),
+            };
+            const navItems = {
+                'home': document.getElementById('nav-home'),
+                'timeline': document.getElementById('nav-timeline'),
+            };
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            Object.keys(pages).forEach(key => {
+                const page = pages[key];
+                const nav = navItems[key];
+                
+                page.classList.remove('active-page', 'animate-fade-in');
+                
+                if (key === pageName) {
+                    page.classList.remove('hidden-page');
+                    page.classList.add('active-page', 'animate-fade-in');
+                    if (nav) {
+                        nav.classList.add('text-gray-800', 'active-nav-item');
+                        nav.classList.remove('text-gray-400', 'inactive-nav-item');
+                    }
+                    // 如果切換到行程頁面，重新渲染時間軸
+                    if (pageName === 'timeline') {
+                        renderTimeline(currentDay);
+                    }
+                } else {
+                    page.classList.add('hidden-page');
+                    if (nav) {
+                        nav.classList.remove('text-gray-800', 'active-nav-item');
+                        nav.classList.add('text-gray-400', 'inactive-nav-item');
+                    }
+                }
+            });
+        }
+
+
+        // 渲染行程時間軸
+        window.renderTimeline = function(day) {
+            currentDay = day;
+            const container = document.getElementById('timeline-container');
+            const data = itineraryData[day];
+            
+            // 更新 Tab 樣式
+            document.querySelectorAll('.day-tab').forEach(tab => {
+                tab.classList.remove('bg-gray-800', 'text-white');
+                tab.classList.add('bg-white', 'text-gray-400', 'border', 'border-gray-100');
+            });
+            const activeTab = document.getElementById(`tab-${day}`);
+            activeTab.classList.remove('bg-white', 'text-gray-400', 'border', 'border-gray-100');
+            activeTab.classList.add('bg-gray-800', 'text-white');
+
+            // 標題與說明
+            let html = `
+                <div class="mb-6 pr-4 animate-fade-in text-center"> 
+                    <p class="text-sm font-medium text-gray-400 mb-1">${data.date}</p>
+                    <h3 class="text-2xl font-bold text-gray-800 tracking-wide">${data.theme}</h3>
+                </div>
+                <div class="relative space-y-4 pb-16"> <!-- 增加底部 padding 以取代被移除的圖表空間 -->
+                    <div class="timeline-line"></div>
+            `;
+
+            // 迴圈生成每一個行程項目
+            data.items.forEach((item, index) => {
+                // 根據類型設定顏色變數 (Tailwind classes)
+                const colorMap = {
+                    'blue': { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-100', dot: 'bg-blue-400' },
+                    'slate': { bg: 'bg-slate-50', text: 'text-slate-600', border: 'border-slate-100', dot: 'bg-slate-400' },
+                    'orange': { bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-100', dot: 'bg-orange-400' },
+                    'pink': { bg: 'bg-pink-50', text: 'text-pink-600', border: 'border-pink-100', dot: 'bg-pink-400' },
+                    'red': { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-100', dot: 'bg-red-400' },
+                    'indigo': { bg: 'bg-indigo-50', text: 'text-indigo-600', border: 'border-indigo-100', dot: 'bg-indigo-400' },
+                    'yellow': { bg: 'bg-yellow-50', text: 'text-yellow-600', border: 'border-yellow-100', dot: 'bg-yellow-400' },
+                    'green': { bg: 'bg-green-50', text: 'text-green-600', border: 'border-green-100', dot: 'bg-green-400' },
+                    'sky': { bg: 'bg-sky-50', text: 'text-sky-600', border: 'border-sky-100', dot: 'bg-sky-400' },
+                    'purple': { bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-100', dot: 'bg-purple-400' },
+                    'cyan': { bg: 'bg-cyan-50', text: 'text-cyan-600', border: 'border-cyan-100', dot: 'bg-cyan-400' },
+                    'amber': { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-100', dot: 'bg-amber-400' },
+                    'default': { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-100', dot: 'bg-gray-400' }
+                };
+                const colors = colorMap[item.color] || colorMap['default'];
+                
+                // 將 item 資料轉為 JSON 字串，以便 onclick 傳遞
+                const itemJson = JSON.stringify(item).replace(/"/g, '&quot;');
+
+                // 新增：圖片區塊 HTML
+                const imageBlockHtml = item.hasImage && item.image
+                    ? `
+                        <div class="mt-2 mb-2">
+                            <img src="${item.image}" class="w-full aspect-[16/9] object-cover rounded-lg shadow-sm" 
+                                alt="${item.title}" 
+                                onerror="this.onerror=null; this.src='${getPlaceholderImage(item.title)}';">
+                        </div>
+                      `
+                    : '';
+
+                html += `
+                    <div class="relative pl-10 pr-4 animate-slide-up" style="animation-delay: ${index * 0.05}s" onclick="openModal(${itemJson})">
+                        <!-- 時間點 (Dot) -->
+                        <div class="absolute left-[1.25rem] -translate-x-1/2 w-4 h-4 rounded-full border-2 border-white shadow-sm ${colors.dot} z-10"></div>
+                        
+                        <!-- 卡片本體 -->
+                        <div class="app-card interactive p-4 border ${colors.border} ${colors.bg} cursor-pointer">
+                            <div class="flex justify-between items-start mb-1">
+                                <span class="text-sm font-bold text-gray-400 tracking-wide font-mono">${item.time}</span>
+                                <i data-lucide="${item.icon}" class="w-4 h-4 ${colors.text} opacity-70"></i>
+                            </div>
+                            <h4 class="font-bold text-gray-800 text-lg leading-tight mb-1">${item.title}</h4>
+                            
+                            <!-- 內嵌圖片 (若有) -->
+                            ${imageBlockHtml} 
+
+                            <!-- 描述 -->
+                            <p class="text-sm text-gray-500 line-clamp-2">${item.desc}</p>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `</div>`; // Close container
+            container.innerHTML = html;
+            
+            // 重新渲染 icons
+            lucide.createIcons();
+            
+            // 圖表相關的邏輯已移除
+        }
+
+
+        // 開啟 Modal (詳細資訊彈窗)
+        window.openModal = function(item) {
+            const modal = document.getElementById('detail-modal');
+            const body = document.getElementById('modal-dynamic-body');
+            
+            // 決定 Modal 內容樣式
+            let contentHtml = '';
+
+            // 輔助函式：渲染備註區塊
+            function renderNote(item) {
+                if (!item.note) return '';
+                return `
+                    <div class="flex items-start p-3 bg-yellow-50 rounded-xl border border-yellow-100/50">
+                        <i data-lucide="sticky-note" class="w-4 h-4 text-yellow-500 mt-0.5 mr-2 shrink-0"></i>
+                        <p class="text-sm text-yellow-700 leading-relaxed font-medium">${item.note}</p>
+                    </div>
+                `;
+            }
+
+            const colorMap = {
+                'blue': 'blue', 'slate': 'slate', 'orange': 'orange', 'pink': 'pink', 'red': 'red', 
+                'indigo': 'indigo', 'yellow': 'yellow', 'green': 'green', 'sky': 'sky', 
+                'purple': 'purple', 'cyan': 'cyan', 'amber': 'amber', 'default': 'gray'
+            };
+            const colorName = colorMap[item.color] || colorMap['default'];
+
+            // --- 地圖按鈕生成邏輯 ---
+            let mapButtonHtml;
+            const mapLink = item.mapLink;
+            const buttonText = mapLink ? '地圖導航 (點擊連結)' : '地圖導航 (連結待定)';
+            const buttonIcon = mapLink ? 'map' : 'map';
+            
+            if (mapLink) {
+                // 啟用狀態：黑底白字，有互動效果
+                mapButtonHtml = `
+                    <button class="flex-1 py-3 bg-gray-900 text-white rounded-xl text-sm font-bold flex items-center justify-center space-x-2 active:scale-[0.99] transition-transform" onclick="window.open('${mapLink}', '_blank')">
+                        <i data-lucide="${buttonIcon}" class="w-4 h-4"></i>
+                        <span>${buttonText}</span>
+                    </button>
+                `;
+            } else {
+                // 禁用狀態：灰底灰字，無點擊或 hover 效果
+                mapButtonHtml = `
+                    <button class="flex-1 py-3 bg-gray-200 text-gray-400 rounded-xl text-sm font-bold flex items-center justify-center space-x-2 cursor-not-allowed" disabled>
+                        <i data-lucide="${buttonIcon}" class="w-4 h-4"></i>
+                        <span>${buttonText}</span>
+                    </button>
+                `;
+            }
+
+
+            if (item.hasImage) {
+                // --- 樣式 A: 有圖片 (主要景點) ---
+                contentHtml = `
+                    <div class="relative mb-5">
+                        <img src="${item.image || getPlaceholderImage(item.title)}" class="aspect-[16/9] object-cover w-full rounded-2xl shadow-lg" alt="${item.title}" 
+                             onerror="this.onerror=null; this.src='${getPlaceholderImage(item.title)}';">
+                        <div class="absolute top-3 right-3 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-sm font-bold text-gray-600 shadow-sm">
+                            ${item.time}
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <span class="text-sm font-bold text-${colorName}-500 uppercase tracking-wider mb-1 block">${item.type}</span>
+                            <h2 class="text-3xl font-bold text-gray-800 leading-tight">${item.title}</h2>
+                        </div>
+                        <p class="text-base text-gray-600 leading-relaxed">
+                            ${item.desc}
+                        </p>
+                        ${renderNote(item)}
+                        <!-- 地圖導航按鈕 (樣式 A) -->
+                        <div class="flex space-x-3 mt-4">
+                            ${mapButtonHtml}
+                        </div>
+                    </div>
+                `;
+            } else {
+                // --- 樣式 B: 無圖片 (一般行程) ---
+                // 針對 Style B 的按鈕樣式進行調整，使用不同的按鈕文字和 Icon
+                const buttonTextB = mapLink ? '查看位置 (點擊連結)' : '查看位置 (連結待定)';
+                const buttonIconB = 'map-pin';
+
+                let mapButtonHtmlB;
+                if (mapLink) {
+                    // 啟用狀態：使用主題色，有互動效果
+                    mapButtonHtmlB = `
+                        <button class="w-full py-3 border border-${colorName}-500 bg-${colorName}-50 text-${colorName}-700 rounded-xl text-sm font-bold flex items-center justify-center space-x-2 hover:bg-${colorName}-100 active:scale-[0.99] transition-transform" onclick="window.open('${mapLink}', '_blank')">
+                            <i data-lucide="${buttonIconB}" class="w-4 h-4"></i>
+                            <span>${buttonTextB}</span>
+                        </button>
+                    `;
+                } else {
+                    // 禁用狀態：灰底灰字，無點擊或 hover 效果
+                    mapButtonHtmlB = `
+                        <button class="w-full py-3 border border-gray-200 text-gray-400 rounded-xl text-sm font-bold flex items-center justify-center space-x-2 cursor-not-allowed bg-gray-100" disabled>
+                            <i data-lucide="${buttonIconB}" class="w-4 h-4"></i>
+                            <span>${buttonTextB}</span>
+                        </button>
+                    `;
+                }
+
+                contentHtml = `
+                    <div class="flex items-start space-x-4 mb-6">
+                        <div class="w-16 h-16 rounded-2xl bg-${colorName}-100 flex items-center justify-center shrink-0">
+                            <i data-lucide="${item.icon}" class="w-8 h-8 text-${colorName}-600"></i>
+                        </div>
+                        <div>
+                            <span class="text-sm font-bold text-gray-400 font-mono bg-gray-100 px-2 py-0.5 rounded">${item.time}</span>
+                            <h2 class="text-2xl font-bold text-gray-800 mt-1">${item.title}</h2>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                            <p class="text-base text-gray-600 leading-relaxed">${item.desc}</p>
+                        </div>
+                        ${renderNote(item)}
+                        <!-- 地圖導航按鈕 (樣式 B) -->
+                        ${mapButtonHtmlB}
+                    </div>
+                `;
+            }
+
+            body.innerHTML = contentHtml;
+            lucide.createIcons();
+            document.body.classList.add('modal-active');
+        }
+
+        window.closeModal = function() {
+            document.body.classList.remove('modal-active');
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            
+            // 確保初始狀態：預設只顯示 Home Page
+            renderPage('home'); 
+            
+            // 預先渲染 Day 1 的 Timeline
+            renderTimeline(1);
+            
+            // NEW: 初始化打包清單
+            initializePackingList();
+        });
+    </script>
+</body>
+</html>
