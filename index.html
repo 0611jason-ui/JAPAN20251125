@@ -128,19 +128,22 @@
                 <p class="text-sm text-gray-400 mt-1">2024.01.11 - 01.16 | 歡迎回來！</p>
             </header>
 
-            <!-- 1. 今日天氣卡片 (天氣資訊) -->
-            <div class="app-card interactive p-6 mb-8 bg-gradient-to-br from-blue-400 to-indigo-500 text-white shadow-xl" onclick="alert('TODO: 顯示五日天氣預報')">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-xl font-medium mb-1">東京，上野</p>
-                        <h2 class="text-6xl font-extrabold">8°C</h2>
-                        <p class="text-sm opacity-90 mt-1">多雲時晴，感覺涼爽</p>
+            <!-- 1. 今日天氣卡片 (靜態模擬天氣資訊 - NEW) -->
+            <div id="weather-card" class="app-card interactive p-6 mb-8 bg-gradient-to-br from-blue-400 to-indigo-500 text-white shadow-xl">
+                <!-- 內容會在 JS 載入時，透過 fetchWeather 函式動態填充 -->
+                <div id="weather-content">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p id="weather-location" class="text-xl font-medium mb-1">東京，上野</p>
+                            <h2 id="weather-temp" class="text-6xl font-extrabold">--°C</h2>
+                            <p id="weather-desc" class="text-sm opacity-90 mt-1">載入即時天氣中...</p>
+                        </div>
+                        <i id="weather-icon" data-lucide="sun" class="w-12 h-12 text-white/90 animate-pulse"></i>
                     </div>
-                    <i data-lucide="cloud-sun" class="w-12 h-12 text-white/90"></i>
-                </div>
-                <div class="mt-4 pt-4 border-t border-white/30 text-xs flex justify-between">
-                    <span>高溫: 11°C / 低溫: 4°C</span>
-                    <span>降雨機率: 20%</span>
+                    <div class="mt-4 pt-4 border-t border-white/30 text-xs flex justify-between">
+                        <span id="weather-high-low">高溫: --°C / 低溫: --°C</span>
+                        <span id="weather-rain">降雨機率: --%</span>
+                    </div>
                 </div>
             </div>
 
@@ -211,9 +214,7 @@
                         <span class="flex items-center">
                             東京灣東方飯店
                             <!-- 導航按鈕 (保留不動，用於首頁住宿區塊) -->
-                            <button onclick="window.open('https://www.google.com/maps/search/' + encodeURIComponent('東京灣東方飯店'), '_blank')" 
-        class="ml-2 w-6 h-6 flex items-center justify-center text-xs font-bold text-white bg-purple-500 hover:bg-purple-600 rounded-full active:scale-[0.95] transition-transform shadow-md">
-</button>
+                            <button onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('東京灣東方飯店')}', '_blank')" class="ml-2 w-6 h-6 flex items-center justify-center text-xs font-bold text-white bg-purple-500 hover:bg-purple-600 rounded-full active:scale-[0.95] transition-transform shadow-md">
                                 <i data-lucide="map-pin" class="w-3 h-3"></i>
                             </button>
                         </span>
@@ -270,9 +271,7 @@
             <!-- 旅遊數據分析圖表區塊已移除 -->
         </div>
 
-        <!-- ---------------------------------------------------- -->
         <!-- 3. 地圖頁面 (Map Page) 內容 - 已移除 -->
-        <!-- ---------------------------------------------------- -->
     </div>
 
     <!-- ---------------------------------------------------- -->
@@ -326,9 +325,10 @@
         const __app_id = 'travel-itinerary-app';
         const __firebase_config = '{}';
         const __initial_auth_token = '';
+        const WEATHER_LOCATION = "東京, 日本"; 
         
         // ----------------------------------------------------
-        // 1. 行程資料庫 - 核心更新 (已新增鎌倉大佛圖片)
+        // 1. 行程資料庫
         // ----------------------------------------------------
         const itineraryData = {
             1: {
@@ -405,13 +405,83 @@
         // 2. 核心功能邏輯
         // ----------------------------------------------------
         
-        // 替換佔位圖片 URL (移到全域，供 renderTimeline 和 openModal 使用)
+        // 替換佔位圖片 URL
         function getPlaceholderImage(title) {
             const t = encodeURIComponent(title.substring(0, 10));
             return `https://placehold.co/600x338/e5e7eb/6b7280?text=${t}...`;
         }
+        
+        // --- 天氣 API 相關邏輯 (NEW) ---
+        // 選擇對應天氣狀況的 Lucide Icon
+        function getWeatherIcon(condition) {
+            if (!condition) return 'sun';
+            const lowerCaseCondition = condition.toLowerCase();
+            if (lowerCaseCondition.includes('rain') || lowerCaseCondition.includes('shower')) return 'cloud-rain';
+            if (lowerCaseCondition.includes('cloudy') || lowerCaseCondition.includes('overcast')) return 'cloud';
+            if (lowerCaseCondition.includes('snow')) return 'cloud-snow';
+            if (lowerCaseCondition.includes('sun') || lowerCaseCondition.includes('clear') || lowerCaseCondition.includes('晴')) return 'sun';
+            if (lowerCaseCondition.includes('partly cloudy') || lowerCaseCondition.includes('多雲') || lowerCaseCondition.includes('陰')) return 'cloud-sun';
+            return 'sun'; // 預設為晴天
+        }
 
-        // --- 攜帶物品清單資料與狀態管理 ---
+        // 模擬從 JMA 網站獲取靜態天氣數據
+        async function fetchWeather() {
+            console.log("已切換至 JMA 靜態數據模擬：因前端無法直接解析外部網頁內容，此處使用模擬數據。");
+
+            // 根據 JMA 網頁 (東京都東京地方) 的預報數據模擬一組當前天氣
+            const mockWeatherData = {
+                location: "東京，上野",
+                temp_c: "10°C", // 模擬當前溫度
+                condition: "晴時多雲", // 模擬 JMA 預報
+                high_c: "13°C", // 模擬最高溫
+                low_c: "6°C",  // 模擬最低溫
+                rain_prob: "10%" // 模擬降雨機率
+            };
+
+            // 使用 setTimeout 模擬非同步網路延遲
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    updateWeatherCard(mockWeatherData);
+                    console.log("靜態天氣資訊載入成功。");
+                    resolve();
+                }, 800); // 模擬 800ms 的網路延遲
+            });
+        }
+
+        // 更新 HTML 上的天氣卡片
+        function updateWeatherCard(data) {
+            const location = document.getElementById('weather-location');
+            const temp = document.getElementById('weather-temp');
+            const desc = document.getElementById('weather-desc');
+            const highLow = document.getElementById('weather-high-low');
+            const rain = document.getElementById('weather-rain'); // 降雨機率
+            const iconElement = document.getElementById('weather-icon');
+            const card = document.getElementById('weather-card');
+            
+            if (location) location.textContent = data.location || "東京，上野";
+            if (temp) temp.textContent = data.temp_c || "--°C";
+            if (desc) desc.textContent = data.condition || "靜態資訊載入成功";
+            if (highLow) highLow.textContent = `高溫: ${data.high_c || '--°C'} / 低溫: ${data.low_c || '--°C'}`;
+            if (rain) rain.textContent = `降雨機率: ${data.rain_prob || '20%'}`;
+
+            // 更新圖示
+            const iconName = getWeatherIcon(data.condition);
+            if (iconElement) {
+                // 替換 Lucide Icon 元素
+                iconElement.outerHTML = `<i id="weather-icon" data-lucide="${iconName}" class="w-12 h-12 text-white/90"></i>`;
+                lucide.createIcons(); // 重新渲染 Lucide Icon
+            }
+            
+            // 移除載入動畫
+            const currentIcon = document.getElementById('weather-icon');
+            if (currentIcon) currentIcon.classList.remove('animate-pulse');
+            
+            if (card) {
+                card.onclick = () => console.log('點擊：此天氣資訊為根據 JMA 預報頁面模擬的靜態數據。');
+            }
+        }
+        
+        // --- 攜帶物品清單資料與狀態管理 (省略，與 v19 相同) ---
         const packingListData = [
             { id: 'passport', text: "護照、機票、日幣", checked: true }, 
             { id: 'adapter', text: "轉接頭與充電線", checked: false },
@@ -516,7 +586,7 @@
                 } else {
                     page.classList.add('hidden-page');
                     if (nav) {
-                        nav.classList.remove('text-gray-800', 'active-nav-item');
+                        nav.classList.remove('text-gray-800', 'inactive-nav-item');
                         nav.classList.add('text-gray-400', 'inactive-nav-item');
                     }
                 }
@@ -759,7 +829,10 @@
             
             // NEW: 初始化打包清單
             initializePackingList();
+            
+            // NEW: 抓取即時天氣 (現已改為靜態模擬)
+            fetchWeather(); 
         });
     </script>
 </body>
-</html>
+</html> 
